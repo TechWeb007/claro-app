@@ -48,12 +48,19 @@ export async function POST(req: Request) {
     }
 
     // 1) Detect company by domain
-    const origin = req.headers.get("origin") || ""
-    const hostname = new URL(origin).hostname
+ const origin = req.headers.get("origin") || ""
+const hostname = origin ? new URL(origin).hostname : ""
 
-    const company = await prisma.company.findUnique({
-      where: { domain: hostname },
-    })
+const company = await prisma.company.findFirst({
+  where: {
+    OR: [
+      { domain: hostname },
+      { domain: { contains: hostname, mode: "insensitive" } }
+    ]
+  }
+})
+
+
 
     if (!company) {
       return NextResponse.json(
