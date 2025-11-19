@@ -1,5 +1,5 @@
 export const dynamic = "force-dynamic";
-export const runtime = "nodejs"; 
+export const runtime = "nodejs";
 
 import { NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
@@ -38,7 +38,7 @@ async function sendEmail(to: string, subject: string, html: string) {
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { name, email, phone, address, conversationId } = body
+    const { name, email, phone, address, conversationId, domain } = body
 
     if (!conversationId) {
       return NextResponse.json(
@@ -47,24 +47,36 @@ export async function POST(req: Request) {
       )
     }
 
-    // 1) Detect company by domain
- const origin = req.headers.get("origin") || ""
-const hostname = origin ? new URL(origin).hostname : ""
+    if (!domain) {
+      return NextResponse.json(
+        { error: "Missing domain" },
+        { status: 400 }
+      )
+    }
 
-const company = await prisma.company.findFirst({
-  where: {
-    OR: [
-      { domain: hostname },
-      { domain: { contains: hostname, mode: "insensitive" } }
-    ]
-  }
-})
-
-
+    // 1) Detect company by DOMAIN FROM BODY (not Origin header)
+    const company = await prisma.company.findFirst({
+      where: {
+        OR: [
+          {
+            domain: {
+              equals: domain,
+              mode: "insensitive",
+            },
+          },
+          {
+            domain: {
+              contains: domain,
+              mode: "insensitive",
+            },
+          },
+        ],
+      },
+    })
 
     if (!company) {
       return NextResponse.json(
-        { error: `Invalid company for domain ${hostname}` },
+        { error: `Invalid company for domain ${domain}` },
         { status: 401 }
       )
     }
@@ -86,7 +98,7 @@ const company = await prisma.company.findFirst({
       include: { summary: true },
     })
 
-    let diagnostic = null
+    let diagnostic: any = null
     if (conversation?.summary?.summary) {
       try {
         diagnostic = JSON.parse(conversation.summary.summary)
@@ -226,7 +238,11 @@ const company = await prisma.company.findFirst({
       <h3>Diagnostic Summary:</h3>
       <pre>${diagnosticSummary}</pre>
       <p>Once payment is completed, a technician will contact you.</p>
-      <p><a href="${travelLink}" target="_blank">Click here to pay the travel fee</a></p>
+      ${
+        travelLink
+          ? `<p><a href="${travelLink}" target="_blank">Click here to pay the travel fee</a></p>`
+          : ""
+      }
     `
 
     // 12) Send emails
