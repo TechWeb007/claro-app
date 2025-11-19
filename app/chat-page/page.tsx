@@ -1,12 +1,7 @@
 'use client'
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
-
-
 
 import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
-import { useSearchParams } from 'next/navigation'
 import remarkGfm from 'remark-gfm'
 
 type Role = 'user' | 'assistant'
@@ -21,9 +16,6 @@ export default function ChatPage() {
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', address: '' })
   const [submitting, setSubmitting] = useState(false)
   const [conversationId, setConversationId] = useState<string | null>(null)
-  const searchParams = useSearchParams()
-  const companyDomain =
-    searchParams.get('domain') || (typeof window !== 'undefined' ? window.location.hostname : '')
 
 
   // refs for autoscroll and autofocus
@@ -59,11 +51,11 @@ const handleSend = async () => {
     const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-  domain: companyDomain,
-  messages: nextMessages,
-  conversationId,
-}),
+      body: JSON.stringify({
+        domain: window.location.hostname,
+        messages: nextMessages,
+        conversationId: conversationId, // <-- VERY IMPORTANT
+      }),
     })
 
     const data = await res.json()
@@ -93,11 +85,11 @@ body: JSON.stringify({
       const res = await fetch('/api/quote', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({
-  domain: companyDomain,
+      body: JSON.stringify({
+  domain: window.location.hostname,
   conversationId,
-  ...formData,
-}),
+  ...formData
+}),  
       })
       const data = await res.json()
       if (res.ok && data.success) {
