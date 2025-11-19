@@ -22,8 +22,13 @@ export default function ChatPage() {
   const endRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
 
-  const companyDomain =
-    typeof window !== "undefined" ? window.location.hostname : ""
+let companyDomain = ""
+
+if (typeof window !== "undefined") {
+  const params = new URLSearchParams(window.location.search)
+  companyDomain = params.get("domain") || window.location.hostname
+}
+
 
   // auto-focus
   useEffect(() => {
